@@ -2,6 +2,7 @@
 
 use std::io;
 
+use bstr::{BString, ByteVec};
 use thiserror::Error;
 
 const FASTQ_RECORD_START: u8 = b'@';
@@ -10,9 +11,9 @@ const FASTQ_RECORD_START: u8 = b'@';
 /// Includes an ID, sequence and quality
 #[derive(Debug, Default, Clone)]
 pub struct Record {
-    pub id: String,
-    pub sequence: String,
-    pub quality: String,
+    pub id: BString,
+    pub sequence: BString,
+    pub quality: BString,
 }
 
 impl Record {
@@ -52,7 +53,7 @@ enum ReaderState {
 /// FASTQ reader
 pub struct Reader<R> {
     inner: R,
-    line_buf: String,
+    line_buf: BString,
     record_buf: Record,
 }
 
@@ -63,7 +64,7 @@ where
     pub fn new(inner: R) -> Self {
         Self {
             inner,
-            line_buf: String::new(),
+            line_buf: BString::default(),
             record_buf: Record::default(),
         }
     }
@@ -88,7 +89,7 @@ where
                 // Read next line and trim the end
                 let bytes_read = self
                     .inner
-                    .read_line(&mut self.line_buf)
+                    .read_until(b'\n', &mut self.line_buf)
                     .map_err(ReaderError::IO)?;
 
                 if bytes_read == 0 {
@@ -103,7 +104,10 @@ where
                     return Ok(None); // EOF
                 }
 
-                self.line_buf.truncate(self.line_buf.trim_end().len());
+                // Remove newline byte
+                if self.line_buf.ends_with(b"\n") {
+                    self.line_buf.pop();
+                }
             }
 
             match state {
