@@ -104,9 +104,12 @@ where
                     return Ok(None); // EOF
                 }
 
-                // Remove newline byte
-                if self.line_buf.ends_with(b"\n") {
+                // Remove newline bytes
+                if self.line_buf.last() == Some(&b'\n') {
                     self.line_buf.pop();
+                    if self.line_buf.last() == Some(&b'\r') {
+                        self.line_buf.pop();
+                    }
                 }
             }
 
