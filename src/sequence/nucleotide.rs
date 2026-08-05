@@ -5,13 +5,31 @@ use crate::alphabet::rna::rna_iupac;
 
 use super::{Sequence, SequenceViewError};
 
+/// A struct representing a view to a DNA-IUPAC or RNA-IUPAC sequence.
+/// Contains useful methods to calculate the GC contents and symbol counts.
 #[derive(Debug)]
 pub struct NucleotideView<'s> {
     inner: &'s Sequence,
 }
 
-/// A struct representing a view to a DNA-IUPAC or RNA-IUPAC sequence.
-/// Contains useful methods to calculate the GC contents and symbol counts.
+// NucleotideView creation functions
+impl<'s> NucleotideView<'s> {
+    /// Checks for the sequence to be a valid DNA-IUPAC of RNA-IUPAC sequence
+    pub fn try_new(sequence: &'s Sequence) -> Result<Self, SequenceViewError> {
+        if dna_iupac().validate_sequence(&sequence) || rna_iupac().validate_sequence(&sequence) {
+            Ok(Self { inner: &sequence })
+        } else {
+            Err(SequenceViewError::InvalidSequence("DNA-IUPAC/RNA-IUPAC"))
+        }
+    }
+
+    /// Creates the view without checking for a valid DNA IUPAC of RNA IUPAC sequence
+    pub fn new_unchecked(sequence: &'s Sequence) -> Self {
+        Self { inner: &sequence }
+    }
+}
+
+// NucleotideView utility methods
 impl<'s> NucleotideView<'s> {
     pub fn gc_percentage<S>(&self, gap_symbols: S) -> f32
     where
@@ -66,21 +84,61 @@ impl<'s> NucleotideView<'s> {
 
         self.inner.iter().filter(|&&b| lut[b as usize]).count()
     }
-}
 
-impl<'s> NucleotideView<'s> {
-    /// Checks for the sequence to be a valid DNA-IUPAC of RNA-IUPAC sequence
-    pub fn try_new(sequence: &'s Sequence) -> Result<Self, SequenceViewError> {
-        if dna_iupac().validate_sequence(&sequence) || rna_iupac().validate_sequence(&sequence) {
-            Ok(Self { inner: &sequence })
-        } else {
-            Err(SequenceViewError::InvalidSequence("DNA-IUPAC/RNA-IUPAC"))
+    /// Returns the DNA complement of the nucleotide view sequence
+    pub fn dna_complement(&self) -> Sequence {
+        const COMPLEMENT_LUT: [u8; 256] = {
+            let mut lut = [0; 256];
+
+            lut[b'A' as usize] = b'T';
+            lut[b'a' as usize] = b't';
+            lut[b'C' as usize] = b'G';
+            lut[b'c' as usize] = b'g';
+            lut[b'G' as usize] = b'C';
+            lut[b'g' as usize] = b'c';
+            lut[b'T' as usize] = b'A';
+            lut[b't' as usize] = b'a';
+            lut[b'U' as usize] = b'A';
+            lut[b'u' as usize] = b'a';
+
+            lut
+        };
+
+        let mut res = Sequence::new(Vec::with_capacity(self.inner.capacity()));
+
+        for &u in self.inner.iter() {
+            res.push(COMPLEMENT_LUT[u as usize]);
         }
+
+        res
     }
 
-    /// Creates the view without checking for a valid DNA IUPAC of RNA IUPAC sequence
-    pub fn new_unchecked(sequence: &'s Sequence) -> Self {
-        Self { inner: &sequence }
+    /// Returns the RNA complement of the nucleotide view sequence
+    pub fn rna_complement(&self) -> Sequence {
+        const COMPLEMENT_LUT: [u8; 256] = {
+            let mut lut = [0; 256];
+
+            lut[b'A' as usize] = b'U';
+            lut[b'a' as usize] = b'u';
+            lut[b'C' as usize] = b'G';
+            lut[b'c' as usize] = b'g';
+            lut[b'G' as usize] = b'C';
+            lut[b'g' as usize] = b'c';
+            lut[b'T' as usize] = b'A';
+            lut[b't' as usize] = b'a';
+            lut[b'U' as usize] = b'A';
+            lut[b'u' as usize] = b'a';
+
+            lut
+        };
+
+        let mut res = Sequence::new(Vec::with_capacity(self.inner.capacity()));
+
+        for &u in self.inner.iter() {
+            res.push(COMPLEMENT_LUT[u as usize]);
+        }
+
+        res
     }
 }
 
@@ -98,5 +156,7 @@ mod tests {
         assert!((nucleotide_view.gc_percentage("") - 50f32).abs() < f32::EPSILON);
         assert_eq!(nucleotide_view.gc_count(), 2);
         assert_eq!(nucleotide_view.symbols_count(b"A"), 1);
+        assert_eq!(nucleotide_view.dna_complement(), "TGCA");
+        assert_eq!(nucleotide_view.rna_complement(), "UGCA");
     }
 }
