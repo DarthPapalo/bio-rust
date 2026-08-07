@@ -14,16 +14,18 @@ pub struct NucleotideView<'s> {
 
 // NucleotideView creation functions
 impl<'s> NucleotideView<'s> {
-    /// Checks for the sequence to be a valid DNA-IUPAC of RNA-IUPAC sequence
+    /// Checks for the sequence to be a valid DNA-IUPAC of RNA-IUPAC sequence.
     pub fn try_new(sequence: &'s Sequence) -> Result<Self, SequenceViewError> {
         if dna_iupac().validate_sequence(&sequence) || rna_iupac().validate_sequence(&sequence) {
             Ok(Self { inner: &sequence })
         } else {
-            Err(SequenceViewError::InvalidSequence("DNA-IUPAC/RNA-IUPAC"))
+            Err(SequenceViewError::InvalidSequence(
+                "DNA-IUPAC/RNA-IUPAC".to_owned(),
+            ))
         }
     }
 
-    /// Creates the view without checking for a valid DNA IUPAC of RNA IUPAC sequence
+    /// Creates the view without checking for a valid DNA IUPAC of RNA IUPAC sequence.
     pub fn new_unchecked(sequence: &'s Sequence) -> Self {
         Self { inner: &sequence }
     }
@@ -31,6 +33,7 @@ impl<'s> NucleotideView<'s> {
 
 // NucleotideView utility methods
 impl<'s> NucleotideView<'s> {
+    /// Returns the GC percentage of the view.
     pub fn gc_percentage<S>(&self, gap_symbols: S) -> f32
     where
         S: AsRef<[u8]>,
@@ -62,6 +65,7 @@ impl<'s> NucleotideView<'s> {
         }
     }
 
+    /// Returns the count of G and C bases inside the view. Case **insensitive**.
     #[inline]
     pub fn gc_count(&self) -> usize {
         self.inner
@@ -70,6 +74,7 @@ impl<'s> NucleotideView<'s> {
             .count()
     }
 
+    /// Counts the occurrences of a symbol inside the view. Case **sensitive**.
     #[inline]
     pub fn symbols_count<S>(&self, symbols: S) -> usize
     where
@@ -85,7 +90,7 @@ impl<'s> NucleotideView<'s> {
         self.inner.iter().filter(|&&b| lut[b as usize]).count()
     }
 
-    /// Returns the DNA complement of the nucleotide view sequence
+    /// Returns the DNA complement of the nucleotide view sequence.
     pub fn dna_complement(&self) -> Sequence {
         const COMPLEMENT_LUT: [u8; 256] = {
             let mut lut = [0; 256];
@@ -113,7 +118,7 @@ impl<'s> NucleotideView<'s> {
         res
     }
 
-    /// Returns the RNA complement of the nucleotide view sequence
+    /// Returns the RNA complement of the nucleotide view sequence.
     pub fn rna_complement(&self) -> Sequence {
         const COMPLEMENT_LUT: [u8; 256] = {
             let mut lut = [0; 256];
