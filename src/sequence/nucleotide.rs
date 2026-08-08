@@ -1,9 +1,18 @@
 //! Nucleotide sequence module
 
+use thiserror::Error;
+
 use crate::alphabet::dna::dna_iupac;
 use crate::alphabet::rna::rna_iupac;
 
-use super::{Sequence, SequenceViewError};
+use super::Sequence;
+
+/// Error type for operations over NucleotideView
+#[derive(Error, Debug)]
+pub enum NucleotideViewError {
+    #[error("the supplied sequence is not valid for the DNA-IUPAC/RNA-IUPAC alphabet")]
+    InvalidSequence,
+}
 
 /// A struct representing a view to a DNA-IUPAC or RNA-IUPAC sequence.
 /// Contains useful methods to calculate the GC contents and symbol counts.
@@ -15,13 +24,11 @@ pub struct NucleotideView<'s> {
 // NucleotideView creation functions
 impl<'s> NucleotideView<'s> {
     /// Checks for the sequence to be a valid DNA-IUPAC of RNA-IUPAC sequence.
-    pub fn try_new(sequence: &'s Sequence) -> Result<Self, SequenceViewError> {
+    pub fn try_new(sequence: &'s Sequence) -> Result<Self, NucleotideViewError> {
         if dna_iupac().validate_sequence(&sequence) || rna_iupac().validate_sequence(&sequence) {
             Ok(Self { inner: &sequence })
         } else {
-            Err(SequenceViewError::InvalidSequence(
-                "DNA-IUPAC/RNA-IUPAC".to_owned(),
-            ))
+            Err(NucleotideViewError::InvalidSequence)
         }
     }
 

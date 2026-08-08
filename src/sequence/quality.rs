@@ -1,4 +1,18 @@
-use super::{Sequence, SequenceViewError};
+use std::fmt::Display;
+
+use thiserror::Error;
+
+use super::Sequence;
+
+/// Error type for operations over QualityView
+#[derive(Error, Debug)]
+pub enum QualityViewError {
+    #[error("invalid sequence for {0} encoding")]
+    InvalidSequence(PhredQualityEncoding),
+
+    #[error("invalid {0} encoding change for sequence")]
+    InvalidEncodingChange(PhredQualityEncoding),
+}
 
 /// Phred quality encodings enum.
 #[derive(Debug)]
@@ -6,6 +20,16 @@ pub enum PhredQualityEncoding {
     Phred33,
     Phred64,
     Other(u8),
+}
+
+impl Display for PhredQualityEncoding {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match *self {
+            PhredQualityEncoding::Phred33 => write!(f, "Phred+33"),
+            PhredQualityEncoding::Phred64 => write!(f, "Phred+64"),
+            PhredQualityEncoding::Other(x) => write!(f, "Phred+{x}"),
+        }
+    }
 }
 
 impl PhredQualityEncoding {
@@ -32,7 +56,7 @@ impl<'s> QualityView<'s> {
     pub fn try_new(
         sequence: &'s Sequence,
         encoding: PhredQualityEncoding,
-    ) -> Result<Self, SequenceViewError> {
+    ) -> Result<Self, QualityViewError> {
         if sequence
             .iter()
             .all(|&b| b >= encoding.ascii_offset() && b <= 126)
@@ -42,10 +66,7 @@ impl<'s> QualityView<'s> {
                 encoding,
             })
         } else {
-            Err(SequenceViewError::InvalidSequence(format!(
-                "Phred{} Quality",
-                encoding.ascii_offset().to_string()
-            )))
+            Err(QualityViewError::InvalidSequence(encoding))
         }
     }
 
@@ -68,6 +89,31 @@ impl<'s> QualityView<'s> {
             .sum::<usize>() as f32
             / self.inner.len() as f32
     }
+
+    /// Returns the phred quality value of the symbol at the given position (0 indexed).
+    pub fn position_quality(&self, index: usize) -> u8 {
+        self.inner[index] - self.encoding.ascii_offset()
+    }
+
+    /// Returns a new quality Sequence in the given encoding.
+    pub fn into_other_encoding(
+        &self,
+        other_encoding: PhredQualityEncoding,
+    ) -> Result<Sequence, QualityViewError> {
+        let mut res = Sequence::new(Vec::with_capacity(self.inner.len()));
+
+        for b in self.inner.iter() {
+            let new_b = (b - self.encoding.ascii_offset()) + other_encoding.ascii_offset();
+
+            if !(new_b >= b'!' && new_b <= b'~') {
+                return Err(QualityViewError::InvalidEncodingChange(other_encoding));
+            }
+
+            res.push(new_b);
+        }
+
+        Ok(res)
+    }
 }
 
 #[cfg(test)]
@@ -82,5 +128,31 @@ mod tests {
             .expect("sequence is valid for the Phred33 Quality alphabet");
 
         assert!((quality_view.average_quality() - 40.666668).abs() < f32::EPSILON);
+        assert_eq!(quality_view.position_quality(0), 41);
+        assert_eq!(quality_view.position_quality(3), 40);
+        assert_eq!(
+            quality_view
+                .into_other_encoding(PhredQualityEncoding::Phred64)
+                .unwrap(),
+            Sequence::from("iiihhhiii")
+        );
+
+        let invalid_for_phred122 = Sequence::from("#$$%&");
+
+        let quality_view2 =
+            QualityView::try_new(&invalid_for_phred122, PhredQualityEncoding::Phred33)
+                .expect("sequence is valid for the Phred33 Quality alphabet");
+
+        assert_eq!(
+            quality_view2
+                .into_other_encoding(PhredQualityEncoding::Phred64)
+                .unwrap(),
+            Sequence::from("BCCDE")
+        );
+        assert!(
+            quality_view2
+                .into_other_encoding(PhredQualityEncoding::Other(122))
+                .is_err()
+        );
     }
 }
