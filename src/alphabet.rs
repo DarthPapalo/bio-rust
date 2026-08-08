@@ -77,7 +77,7 @@ impl Classifier<u8> {
     {
         let name = name.into();
         if self.names.iter().any(|n| n == &name) {
-            return Err(ClassifierError::DuplicateName(name.into()));
+            return Err(ClassifierError::DuplicateName(name));
         }
 
         let bitflag_idx = self.names.len();
@@ -134,6 +134,12 @@ impl Classifier<u8> {
             }
             AlphabetType::Ambiguous(ambiguous)
         }
+    }
+}
+
+impl Default for Classifier<u8> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

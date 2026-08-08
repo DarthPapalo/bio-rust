@@ -25,8 +25,8 @@ pub struct NucleotideView<'s> {
 impl<'s> NucleotideView<'s> {
     /// Checks for the sequence to be a valid DNA-IUPAC of RNA-IUPAC sequence.
     pub fn try_new(sequence: &'s Sequence) -> Result<Self, NucleotideViewError> {
-        if dna_iupac().validate_sequence(&sequence) || rna_iupac().validate_sequence(&sequence) {
-            Ok(Self { inner: &sequence })
+        if dna_iupac().validate_sequence(sequence) || rna_iupac().validate_sequence(sequence) {
+            Ok(Self { inner: sequence })
         } else {
             Err(NucleotideViewError::InvalidSequence)
         }
@@ -34,7 +34,7 @@ impl<'s> NucleotideView<'s> {
 
     /// Creates the view without checking for a valid DNA IUPAC of RNA IUPAC sequence.
     pub fn new_unchecked(sequence: &'s Sequence) -> Self {
-        Self { inner: &sequence }
+        Self { inner: sequence }
     }
 }
 

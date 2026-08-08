@@ -22,22 +22,22 @@ pub enum PhredQualityEncoding {
     Other(u8),
 }
 
-impl Display for PhredQualityEncoding {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match *self {
-            PhredQualityEncoding::Phred33 => write!(f, "Phred+33"),
-            PhredQualityEncoding::Phred64 => write!(f, "Phred+64"),
-            PhredQualityEncoding::Other(x) => write!(f, "Phred+{x}"),
-        }
-    }
-}
-
 impl PhredQualityEncoding {
     fn ascii_offset(&self) -> u8 {
         match *self {
             PhredQualityEncoding::Phred33 => 33,
             PhredQualityEncoding::Phred64 => 64,
             PhredQualityEncoding::Other(x) => x,
+        }
+    }
+}
+
+impl Display for PhredQualityEncoding {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match *self {
+            PhredQualityEncoding::Phred33 => write!(f, "Phred+33"),
+            PhredQualityEncoding::Phred64 => write!(f, "Phred+64"),
+            PhredQualityEncoding::Other(x) => write!(f, "Phred+{x}"),
         }
     }
 }
@@ -62,7 +62,7 @@ impl<'s> QualityView<'s> {
             .all(|&b| b >= encoding.ascii_offset() && b <= 126)
         {
             Ok(Self {
-                inner: &sequence,
+                inner: sequence,
                 encoding,
             })
         } else {
@@ -73,7 +73,7 @@ impl<'s> QualityView<'s> {
     /// Creates the view without checking for a valid Phred Quality sequence.
     pub fn new_unchecked(sequence: &'s Sequence, encoding: PhredQualityEncoding) -> Self {
         Self {
-            inner: &sequence,
+            inner: sequence,
             encoding,
         }
     }
@@ -105,7 +105,7 @@ impl<'s> QualityView<'s> {
         for b in self.inner.iter() {
             let new_b = (b - self.encoding.ascii_offset()) + other_encoding.ascii_offset();
 
-            if !(new_b >= b'!' && new_b <= b'~') {
+            if !(b'!'..=b'~').contains(&new_b) {
                 return Err(QualityViewError::InvalidEncodingChange(other_encoding));
             }
 
