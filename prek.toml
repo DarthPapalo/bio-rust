@@ -1,0 +1,31 @@
+# --- local hooks ---
+
+[[repos]]
+repo = "local"
+
+[[repos.hooks]]
+id = "fmt"
+name = "cargo fmt"
+description = "Format files with cargo fmt."
+entry = "cargo fmt --"
+language = "system"
+types = ["rust"]
+pass_filenames = false
+
+[[repos.hooks]]
+id = "cargo-check"
+name = "cargo check"
+description = "Check the package for errors with cargo check."
+entry = "cargo check"
+language = "system"
+types = ["rust"]
+pass_filenames = false
+
+[[repos.hooks]]
+id = "clippy"
+name = "clippy"
+description = "Lint rust sources with Clippy."
+entry = "cargo clippy -- -D warnings"
+language = "system"
+types = ["rust"]
+pass_filenames = false
