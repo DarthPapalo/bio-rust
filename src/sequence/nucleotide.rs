@@ -1,4 +1,4 @@
-//! Nucleotide sequence module
+//! Nucleotide sequences module
 
 use thiserror::Error;
 

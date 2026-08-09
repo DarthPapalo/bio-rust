@@ -1,3 +1,5 @@
+//! Quality sequences module
+
 use std::fmt::Display;
 
 use thiserror::Error;
