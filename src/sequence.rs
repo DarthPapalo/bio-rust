@@ -10,6 +10,8 @@ use bstr::{BStr, BString};
 pub use nucleotide::NucleotideView;
 pub use quality::{PhredQualityEncoding, QualityView};
 
+/// A struct representing a biological sequence.
+/// It has utility methods to work with K-mers.
 #[derive(Debug, Default, PartialEq, Eq, Hash, Clone)]
 pub struct Sequence(BString);
 
