@@ -126,6 +126,7 @@ impl<'s> NucleotideView<'s> {
     }
 
     /// Returns the RNA complement of the nucleotide view sequence.
+    /// Equivalent of DNA transcription but will also turn uracil into adenine.
     pub fn rna_complement(&self) -> Sequence {
         const COMPLEMENT_LUT: [u8; 256] = {
             let mut lut = [0; 256];
@@ -166,8 +167,11 @@ mod tests {
             NucleotideView::try_new(&sequence).expect("sequence is valid for DNA alphabet");
 
         assert!((nucleotide_view.gc_percentage("") - 50f32).abs() < f32::EPSILON);
+
         assert_eq!(nucleotide_view.gc_count(), 2);
+
         assert_eq!(nucleotide_view.symbols_count(b"A"), 1);
+
         assert_eq!(nucleotide_view.dna_complement(), "TGCA");
         assert_eq!(nucleotide_view.rna_complement(), "UGCA");
     }
