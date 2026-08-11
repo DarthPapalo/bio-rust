@@ -7,6 +7,7 @@ use std::ops::{Deref, DerefMut};
 use bstr::{BStr, BString};
 
 pub use nucleotide::NucleotideView;
+use thiserror::Error;
 
 const fn build_complement_lut<const X: usize>(
     sequence: &[u8; X],
@@ -35,12 +36,18 @@ const fn build_complement_lut<const X: usize>(
     lut
 }
 
+#[derive(Debug, Error)]
+pub enum SequenceOperationError {
+    #[error("can't calculate distance between two sequences with different lengths")]
+    DifferentLengths,
+}
+
 /// A struct representing a biological sequence.
 /// It has utility methods to work with K-mers.
 #[derive(Debug, Default, PartialEq, Eq, Hash, Clone)]
 pub struct Sequence(BString);
 
-/// Sequence creation functions
+// Sequence creation functions
 impl Sequence {
     /// Creates an empty sequence without allocating any memory.
     pub fn new() -> Self {
@@ -53,8 +60,39 @@ impl Sequence {
     }
 }
 
-/// Sequence utility methods
+// Sequence utility methods
 impl Sequence {
+    /// Returns the Hamming distance between this sequence and another one.
+    ///
+    /// Returns a `SequenceOperationError::DifferentLengths` error if the sequences have different lengths.
+    pub fn hamming_distance(&self, other: &Sequence) -> Result<usize, SequenceOperationError> {
+        if self.len() != other.len() {
+            return Err(SequenceOperationError::DifferentLengths);
+        }
+
+        Ok(self
+            .iter()
+            .zip(other.iter())
+            .filter(|&(&b, &v)| b != v)
+            .count())
+    }
+
+    /// Returns the p-distance between this sequence and another one.
+    /// ///
+    /// Returns a `SequenceOperationError::DifferentLengths` error if the sequences have different lengths.
+    pub fn p_distance(&self, other: &Sequence) -> Result<f32, SequenceOperationError> {
+        if self.len() != other.len() {
+            return Err(SequenceOperationError::DifferentLengths);
+        }
+
+        Ok((self
+            .iter()
+            .zip(other.iter())
+            .filter(|&(&b, &v)| b != v)
+            .count() as f64
+            / self.len() as f64) as f32)
+    }
+
     /// Returns a `slice::Windows` iterator over the sequence kmers of size `k`.
     pub fn kmers(&self, k: usize) -> impl Iterator<Item = &BStr> {
         self.0.windows(k).map(BStr::new)
@@ -149,6 +187,23 @@ impl From<Sequence> for BString {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_distance() {
+        let first_seq = Sequence::from("ACGTGTCAN");
+        let second_seq = Sequence::from("ACGNGNCAN");
+
+        assert_eq!(
+            first_seq
+                .hamming_distance(&second_seq)
+                .expect("both sequences have the same length"),
+            2
+        );
+        assert_eq!(
+            first_seq.p_distance(&second_seq).unwrap(),
+            (2f64 / first_seq.len() as f64) as f32
+        );
+    }
 
     #[test]
     fn test_kmers() {
