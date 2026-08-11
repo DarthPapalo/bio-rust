@@ -5,6 +5,8 @@ use std::io;
 use bstr::{BString, ByteVec};
 use thiserror::Error;
 
+use crate::quality::{PhredQualityEncoding, QualityView, QualityViewError};
+
 const FASTQ_RECORD_START: u8 = b'@';
 
 /// A FASTQ format record
@@ -21,6 +23,16 @@ impl Record {
         self.id.clear();
         self.sequence.clear();
         self.quality.clear();
+    }
+}
+
+impl Record {
+    /// Returns a `QualityView` from the quality string on this FASTQ record.
+    pub fn quality_view<'r>(
+        &'r self,
+        encoding: PhredQualityEncoding,
+    ) -> Result<QualityView<'r>, QualityViewError> {
+        QualityView::try_new(&self.sequence, encoding)
     }
 }
 
