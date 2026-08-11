@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use thiserror::Error;
 
 use super::Alphabet;
@@ -5,7 +7,7 @@ use super::Alphabet;
 #[derive(Debug, PartialEq, Eq)]
 pub enum AlphabetType {
     Exact(String),
-    Ambiguous(Vec<String>),
+    Ambiguous(HashSet<String>),
     Unknown,
 }
 
@@ -87,10 +89,10 @@ impl Classifier<u8> {
             let bit_idx = mask.trailing_zeros() as usize;
             AlphabetType::Exact(self.names[bit_idx].clone())
         } else {
-            let mut ambiguous = Vec::with_capacity(num_matches as usize);
+            let mut ambiguous = HashSet::with_capacity(num_matches as usize);
             for i in 0..self.names.len() {
                 if (mask & (1 << i)) != 0 {
-                    ambiguous.push(self.names[i].clone());
+                    ambiguous.insert(self.names[i].clone());
                 }
             }
             AlphabetType::Ambiguous(ambiguous)
@@ -133,7 +135,7 @@ mod tests {
 
         assert_eq!(
             dna_rna_classifier.classify("ACG"),
-            AlphabetType::Ambiguous(vec!["DNA".into(), "RNA".into()])
+            AlphabetType::Ambiguous(HashSet::from(["DNA".into(), "RNA".into()]))
         );
     }
 }
