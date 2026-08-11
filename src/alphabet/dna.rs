@@ -1,9 +1,6 @@
+use std::sync::LazyLock;
+
 use super::Alphabet;
 
-pub fn dna() -> Alphabet {
-    Alphabet::new("ACGT.-")
-}
-
-pub fn dna_iupac() -> Alphabet {
-    Alphabet::new("ACGTRYSWKMBDHVN.-")
-}
+pub static DNA: LazyLock<Alphabet> = LazyLock::new(|| Alphabet::new("ACGT.-"));
+pub static DNA_IUPAC: LazyLock<Alphabet> = LazyLock::new(|| Alphabet::new("ACGTRYSWKMBDHVN.-"));

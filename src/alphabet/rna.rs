@@ -1,9 +1,6 @@
+use std::sync::LazyLock;
+
 use super::Alphabet;
 
-pub fn rna() -> Alphabet {
-    Alphabet::new("ACGU.-")
-}
-
-pub fn rna_iupac() -> Alphabet {
-    Alphabet::new("ACGURYSWKMBDHVN.-")
-}
+pub static RNA: LazyLock<Alphabet> = LazyLock::new(|| Alphabet::new("ACGU.-"));
+pub static RNA_IUPAC: LazyLock<Alphabet> = LazyLock::new(|| Alphabet::new("ACGURYSWKMBDHVN.-"));

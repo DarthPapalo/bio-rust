@@ -1,9 +1,15 @@
 //! Nucleotide sequences module
 
+mod dna;
+mod rna;
+
 use thiserror::Error;
 
-use crate::alphabet::dna::dna_iupac;
-use crate::alphabet::rna::rna_iupac;
+use crate::alphabet::dna::DNA_IUPAC;
+use crate::alphabet::rna::RNA_IUPAC;
+
+use dna::{DnaView, DnaViewError};
+use rna::{RnaView, RnaViewError};
 
 use super::Sequence;
 
@@ -25,7 +31,7 @@ pub struct NucleotideView<'s> {
 impl<'s> NucleotideView<'s> {
     /// Checks for the sequence to be a valid DNA-IUPAC of RNA-IUPAC sequence.
     pub fn try_new(sequence: &'s Sequence) -> Result<Self, NucleotideViewError> {
-        if dna_iupac().validate_sequence(sequence) || rna_iupac().validate_sequence(sequence) {
+        if DNA_IUPAC.validate_sequence(sequence) || RNA_IUPAC.validate_sequence(sequence) {
             Ok(Self { inner: sequence })
         } else {
             Err(NucleotideViewError::InvalidSequence)
@@ -96,62 +102,18 @@ impl<'s> NucleotideView<'s> {
 
         self.inner.iter().filter(|&&b| lut[b as usize]).count()
     }
+}
 
-    /// Returns the DNA complement of the nucleotide view sequence.
-    pub fn dna_complement(&self) -> Sequence {
-        const COMPLEMENT_LUT: [u8; 256] = {
-            let mut lut = [0; 256];
-
-            lut[b'A' as usize] = b'T';
-            lut[b'a' as usize] = b't';
-            lut[b'C' as usize] = b'G';
-            lut[b'c' as usize] = b'g';
-            lut[b'G' as usize] = b'C';
-            lut[b'g' as usize] = b'c';
-            lut[b'T' as usize] = b'A';
-            lut[b't' as usize] = b'a';
-            lut[b'U' as usize] = b'A';
-            lut[b'u' as usize] = b'a';
-
-            lut
-        };
-
-        let mut res = Sequence::new(Vec::with_capacity(self.inner.capacity()));
-
-        for &u in self.inner.iter() {
-            res.push(COMPLEMENT_LUT[u as usize]);
-        }
-
-        res
+// NucleotideView casting methods
+impl<'s> NucleotideView<'s> {
+    /// Returns the `NucleotideView` as a `DnaView` if the sequence is valid for the DNA-IUPAC alphabet.
+    pub fn as_dna(self) -> Result<DnaView<'s>, DnaViewError> {
+        DnaView::try_new(self.inner)
     }
 
-    /// Returns the RNA complement of the nucleotide view sequence.
-    /// Equivalent of DNA transcription but will also turn uracil into adenine.
-    pub fn rna_complement(&self) -> Sequence {
-        const COMPLEMENT_LUT: [u8; 256] = {
-            let mut lut = [0; 256];
-
-            lut[b'A' as usize] = b'U';
-            lut[b'a' as usize] = b'u';
-            lut[b'C' as usize] = b'G';
-            lut[b'c' as usize] = b'g';
-            lut[b'G' as usize] = b'C';
-            lut[b'g' as usize] = b'c';
-            lut[b'T' as usize] = b'A';
-            lut[b't' as usize] = b'a';
-            lut[b'U' as usize] = b'A';
-            lut[b'u' as usize] = b'a';
-
-            lut
-        };
-
-        let mut res = Sequence::new(Vec::with_capacity(self.inner.capacity()));
-
-        for &u in self.inner.iter() {
-            res.push(COMPLEMENT_LUT[u as usize]);
-        }
-
-        res
+    /// Returns the `NucleotideView` as a `RnaView` if the sequence is valid for the RNA-IUPAC alphabet.
+    pub fn as_rna(self) -> Result<RnaView<'s>, RnaViewError> {
+        RnaView::try_new(self.inner)
     }
 }
 
@@ -171,8 +133,5 @@ mod tests {
         assert_eq!(nucleotide_view.gc_count(), 2);
 
         assert_eq!(nucleotide_view.symbols_count(b"A"), 1);
-
-        assert_eq!(nucleotide_view.dna_complement(), "TGCA");
-        assert_eq!(nucleotide_view.rna_complement(), "UGCA");
     }
 }

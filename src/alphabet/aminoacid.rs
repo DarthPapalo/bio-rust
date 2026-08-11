@@ -1,5 +1,5 @@
+use std::sync::LazyLock;
+
 use super::Alphabet;
 
-pub fn aminoacid_iupac() -> Alphabet {
-    Alphabet::new("ACDEFGHIKLMNPQRSTVWY")
-}
+pub static AMINOACID: LazyLock<Alphabet> = LazyLock::new(|| Alphabet::new("ACDEFGHIKLMNPQRSTVWY*"));

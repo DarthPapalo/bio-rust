@@ -1,10 +1,9 @@
-//! Quality sequences module
+//! Quality strings module
 
 use std::fmt::Display;
 
+use bstr::BString;
 use thiserror::Error;
-
-use super::Sequence;
 
 /// Error type for operations over QualityView
 #[derive(Error, Debug)]
@@ -44,11 +43,11 @@ impl Display for PhredQualityEncoding {
     }
 }
 
-/// A struct representing a view to a Phred Quality sequence.
+/// A struct representing a view to a Phred Quality string.
 /// Contains a method to calculate the average quality.
 #[derive(Debug)]
 pub struct QualityView<'s> {
-    inner: &'s Sequence,
+    inner: &'s BString,
     encoding: PhredQualityEncoding,
 }
 
@@ -56,7 +55,7 @@ pub struct QualityView<'s> {
 impl<'s> QualityView<'s> {
     /// Checks for the sequence to be a valid Phred Quality sequence.
     pub fn try_new(
-        sequence: &'s Sequence,
+        sequence: &'s BString,
         encoding: PhredQualityEncoding,
     ) -> Result<Self, QualityViewError> {
         if sequence
@@ -73,7 +72,7 @@ impl<'s> QualityView<'s> {
     }
 
     /// Creates the view without checking for a valid Phred Quality sequence.
-    pub fn new_unchecked(sequence: &'s Sequence, encoding: PhredQualityEncoding) -> Self {
+    pub fn new_unchecked(sequence: &'s BString, encoding: PhredQualityEncoding) -> Self {
         Self {
             inner: sequence,
             encoding,
@@ -101,8 +100,8 @@ impl<'s> QualityView<'s> {
     pub fn into_other_encoding(
         &self,
         other_encoding: PhredQualityEncoding,
-    ) -> Result<Sequence, QualityViewError> {
-        let mut res = Sequence::new(Vec::with_capacity(self.inner.len()));
+    ) -> Result<BString, QualityViewError> {
+        let mut res = BString::new(Vec::with_capacity(self.inner.len()));
 
         for b in self.inner.iter() {
             let new_b = (b - self.encoding.ascii_offset()) + other_encoding.ascii_offset();
@@ -124,7 +123,7 @@ mod tests {
 
     #[test]
     fn test_quality_view() {
-        let sequence = Sequence::from("JJJIIIJJJ");
+        let sequence = BString::from("JJJIIIJJJ");
 
         let quality_view = QualityView::try_new(&sequence, PhredQualityEncoding::Phred33)
             .expect("sequence is valid for the Phred33 Quality alphabet");
@@ -136,10 +135,10 @@ mod tests {
             quality_view
                 .into_other_encoding(PhredQualityEncoding::Phred64)
                 .unwrap(),
-            Sequence::from("iiihhhiii")
+            BString::from("iiihhhiii")
         );
 
-        let invalid_for_phred122 = Sequence::from("#$$%&");
+        let invalid_for_phred122 = BString::from("#$$%&");
 
         let quality_view2 =
             QualityView::try_new(&invalid_for_phred122, PhredQualityEncoding::Phred33)
@@ -149,7 +148,7 @@ mod tests {
             quality_view2
                 .into_other_encoding(PhredQualityEncoding::Phred64)
                 .unwrap(),
-            Sequence::from("BCCDE")
+            BString::from("BCCDE")
         );
         assert!(
             quality_view2

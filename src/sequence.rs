@@ -1,14 +1,39 @@
 //! Module with helper structs with methods to work with common sequence types.
 
 mod nucleotide;
-mod quality;
 
 use std::ops::{Deref, DerefMut};
 
 use bstr::{BStr, BString};
 
 pub use nucleotide::NucleotideView;
-pub use quality::{PhredQualityEncoding, QualityView};
+
+const fn build_complement_lut<const X: usize>(
+    sequence: &[u8; X],
+    complement: &[u8; X],
+) -> [u8; 256] {
+    let mut lut = [0; 256];
+
+    // 1. Initialize with identity mapping
+    let mut i = 0;
+    while i < 256 {
+        lut[i] = i as u8;
+        i += 1;
+    }
+
+    // 2. Map the specific complement pairs
+    let mut j = 0;
+    while j < X {
+        let base = sequence[j];
+        let comp = complement[j];
+
+        lut[base as usize] = comp;
+
+        j += 1;
+    }
+
+    lut
+}
 
 /// A struct representing a biological sequence.
 /// It has utility methods to work with K-mers.
@@ -17,8 +42,14 @@ pub struct Sequence(BString);
 
 /// Sequence creation functions
 impl Sequence {
-    pub fn new(bytes: Vec<u8>) -> Self {
-        Self(BString::new(bytes))
+    /// Creates an empty sequence without allocating any memory.
+    pub fn new() -> Self {
+        Self(BString::new(Vec::new()))
+    }
+
+    /// Creates an empty sequence with at least the specified capacity.
+    pub fn with_capacity(capacity: usize) -> Self {
+        Self(BString::new(Vec::with_capacity(capacity)))
     }
 }
 
@@ -75,19 +106,25 @@ impl PartialEq<Sequence> for &str {
 
 impl<'s> From<&'s str> for Sequence {
     fn from(value: &'s str) -> Self {
-        Self::new(value.into())
+        Self(value.into())
     }
 }
 
 impl From<String> for Sequence {
     fn from(value: String) -> Self {
-        Self::new(value.into())
+        Self(value.into())
     }
 }
 
 impl From<BString> for Sequence {
-    fn from(b: BString) -> Self {
-        Self(b)
+    fn from(value: BString) -> Self {
+        Self(value)
+    }
+}
+
+impl From<Vec<u8>> for Sequence {
+    fn from(value: Vec<u8>) -> Self {
+        Self(value.into())
     }
 }
 
