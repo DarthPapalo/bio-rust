@@ -1,6 +1,6 @@
 //! Module with helper structs with methods to work with common sequence types.
 
-mod nucleotide;
+pub mod nucleotide;
 
 use std::ops::{Deref, DerefMut};
 

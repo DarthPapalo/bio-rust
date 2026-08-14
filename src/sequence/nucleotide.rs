@@ -1,7 +1,7 @@
 //! Nucleotide sequences module
 
-mod dna;
-mod rna;
+pub mod dna;
+pub mod rna;
 
 use thiserror::Error;
 
