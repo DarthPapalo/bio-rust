@@ -17,4 +17,4 @@ bio = { git = "https://github.com/DarthPapalo/bio-rust", version = "0.1.0" }
 Or through the CLI: `cargo add --git https://github.com/DarthPapalo/bio-rust`
 
 > [!NOTE]
-> This crate is not uploaded to crates.io as it is a personal project. You should probably use the *de-facto* crate rust-bio[https://crates.io/crates/bio]
+> This crate is not uploaded to crates.io as it is a personal project. You should probably use the *de-facto* crate [rust-bio](https://crates.io/crates/bio)
