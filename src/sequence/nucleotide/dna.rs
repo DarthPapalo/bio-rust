@@ -2,7 +2,7 @@ use thiserror::Error;
 
 use crate::alphabet::dna::DNA_IUPAC;
 
-use crate::sequence::{Sequence, build_complement_lut};
+use crate::sequence::{NucleotideView, Sequence, build_complement_lut};
 
 /// Error type for operations over NucleotideView
 #[derive(Error, Debug)]
@@ -13,6 +13,7 @@ pub enum DnaViewError {
 
 pub struct DnaView<'s> {
     inner: &'s Sequence,
+    pub nucleotide_view: NucleotideView<'s>,
 }
 
 // DnaView creation functions
@@ -20,7 +21,10 @@ impl<'s> DnaView<'s> {
     /// Checks for the sequence to be a valid DNA-IUPAC sequence.
     pub fn try_new(sequence: &'s Sequence) -> Result<Self, DnaViewError> {
         if DNA_IUPAC.validate_sequence(sequence) {
-            Ok(Self { inner: sequence })
+            Ok(Self {
+                inner: sequence,
+                nucleotide_view: NucleotideView::new_unchecked(sequence),
+            })
         } else {
             Err(DnaViewError::InvalidSequence)
         }
@@ -28,7 +32,10 @@ impl<'s> DnaView<'s> {
 
     /// Creates the view without checking for a valid DNA-IUPAC sequence.
     pub fn new_unchecked(sequence: &'s Sequence) -> Self {
-        Self { inner: sequence }
+        Self {
+            inner: sequence,
+            nucleotide_view: NucleotideView::new_unchecked(sequence),
+        }
     }
 }
 
@@ -80,5 +87,18 @@ mod tests {
 
         // Not a valid DNA sequence
         assert!(DnaView::try_new(&Sequence::from("ACGU")).is_err());
+    }
+
+    #[test]
+    fn test_nucleotide_view_access() {
+        let seq = Sequence::from("ACGTGTCANNN");
+
+        let dna_view = DnaView::try_new(&seq).expect("its a valid DNA-IUPAC sequence");
+
+        assert_eq!(dna_view.complement(), "TGCACAGTNNN");
+
+        // A DnaView is also always a valid NucleotideView
+        // We can access it from DnaView
+        assert_eq!(dna_view.nucleotide_view.gc_count(), 4);
     }
 }

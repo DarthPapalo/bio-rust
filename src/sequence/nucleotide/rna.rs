@@ -2,7 +2,7 @@ use thiserror::Error;
 
 use crate::alphabet::rna::RNA_IUPAC;
 
-use crate::sequence::{Sequence, build_complement_lut};
+use crate::sequence::{NucleotideView, Sequence, build_complement_lut};
 
 /// Error type for operations over NucleotideView
 #[derive(Error, Debug)]
@@ -13,6 +13,7 @@ pub enum RnaViewError {
 
 pub struct RnaView<'s> {
     inner: &'s Sequence,
+    pub nucleotide_view: NucleotideView<'s>,
 }
 
 // RnaView creation functions
@@ -20,7 +21,10 @@ impl<'s> RnaView<'s> {
     /// Checks for the sequence to be a valid RNA-IUPAC sequence.
     pub fn try_new(sequence: &'s Sequence) -> Result<Self, RnaViewError> {
         if RNA_IUPAC.validate_sequence(sequence) {
-            Ok(Self { inner: sequence })
+            Ok(Self {
+                inner: sequence,
+                nucleotide_view: NucleotideView::new_unchecked(sequence),
+            })
         } else {
             Err(RnaViewError::InvalidSequence)
         }
@@ -28,7 +32,10 @@ impl<'s> RnaView<'s> {
 
     /// Creates the view without checking for a valid RNA-IUPAC sequence.
     pub fn new_unchecked(sequence: &'s Sequence) -> Self {
-        Self { inner: sequence }
+        Self {
+            inner: sequence,
+            nucleotide_view: NucleotideView::new_unchecked(sequence),
+        }
     }
 }
 
@@ -80,5 +87,18 @@ mod tests {
 
         // Not a valid RNA sequence
         assert!(RnaView::try_new(&Sequence::from("ACGT")).is_err());
+    }
+
+    #[test]
+    fn test_nucleotide_view_access() {
+        let seq = Sequence::from("ACGUGUCANNN");
+
+        let rna_view = RnaView::try_new(&seq).expect("its a valid RNA-IUPAC sequence");
+
+        assert_eq!(rna_view.complement(), "UGCACAGUNNN");
+
+        // A RnaView is also always a valid NucleotideView
+        // We can access it from DnaView
+        assert_eq!(rna_view.nucleotide_view.gc_count(), 4);
     }
 }
