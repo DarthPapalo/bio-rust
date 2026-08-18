@@ -25,6 +25,9 @@ fn test_sequences() {
 
     assert_eq!(dna_view.transcript(), "UGCACUNCARRACGNU");
 
+    // We can still access a NucletideView from a DnaView
+    assert_eq!(dna_view.nucleotide_view.symbols_count(b"C"), 2);
+
     // Try to use RNA methods on an invalid RNA sequence
     let rna_view = RnaView::try_new(&sequence);
 
